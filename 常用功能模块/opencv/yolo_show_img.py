@@ -3,12 +3,12 @@ import cv2
 import numpy as np
 
 # 显示box，用来检验生成的box是否正确
-# image_path = '/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_17/show_cell/H2_AN202001171374309841_1/'
-# label_path = '/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_17/show_cell/H2_AN202001171374309841_1/'
+image_path = '/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_19/images/'
+label_path = '/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_19/labels/'
 # image_path = '/Volumes/my_disk/company/sensedeal/dataset/my/my_mix/table_detection/v_0/TableBank_cls/images/'
 # label_path = '/Volumes/my_disk/company/sensedeal/dataset/my/my_mix/table_detection/v_0/TableBank_cls/labels/'
-image_path = '/Volumes/my_disk/company/sensedeal/项目/POC/华夏国际银行poc需求梳理/gt/images/'
-label_path = '/Volumes/my_disk/company/sensedeal/项目/POC/华夏国际银行poc需求梳理/gt/labels/'
+# image_path = '/Volumes/my_disk/company/sensedeal/217_PycharmProject/bbtv/SSL_yolov3_FixMatch/data/ocr_table/un_images/train/'
+# label_path = '/Volumes/my_disk/company/sensedeal/217_PycharmProject/bbtv/SSL_yolov3_FixMatch/data/ocr_table/un_labels/train/'
 image_name_list = os.listdir(image_path)
 for image_name in image_name_list:
     # if image_name != '5675_015.jpg':
