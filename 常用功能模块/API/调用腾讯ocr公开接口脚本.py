@@ -27,7 +27,7 @@ try:
     # base64data = str(base64data, 'utf-8')  # 重新编码数据
     # params = {"ImageBase64": "' + base64data + '"}
 
-    lines = open('/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_18/37.txt', 'r').readlines()
+    lines = open('/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_18/20210423评估/img_list.txt', 'r').readlines()
     for index, url in enumerate(lines):
         # url = "http://m.qpic.cn/psc?/V519xkby2jxUud3BokKM1jiJVJ4RAg7W/TmEUgtj9EK6.7V8ajmQrEBa5VdOquUQOxg73IsZ8OaXBoPhaIGkcl2vKYg6.U94Zo5P.OWypKtGexn3OG6ta51YCXO6RzoEMSN5Ui2czkIY!/b&bo=oAU4BKAFOAQBKQ4!&rf=viewer_4&t=5"
         params = {
@@ -38,16 +38,19 @@ try:
 
         resp = client.RecognizeTableOCR(req)
         resp_json = resp.to_json_string()
-        f = open('/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_18/out_img/' + str(index) + '.json', 'w')
+        f = open('/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_18/20210423评估/tencent_out/struct/' + str(index) + '.json', 'w')
         json.dump(resp_json, f)
         resp_dict = json.loads(resp_json)
 
         resp = urllib.request.urlopen(url)
         image = np.asarray(bytearray(resp.read()), dtype="uint8")
         image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+        cv2.imwrite('/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_18/20210423评估/tencent_out/images/' + str(index) + '.jpg', image)
+        img_h, img_w, _ = np.shape(image)
 
         # image = cv2.imread('/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_18/37.jpg')
-        txt_out = open('/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_18/out_img/' + str(index) + '.txt', 'a+')
+        txt_out = open('/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_18/20210423评估/tencent_out/struct/' + str(index) + '_struct.txt', 'a+')
+        box_out = open('/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_18/20210423评估/tencent_out/labels/' + str(index) + '.txt', 'a+')
         for table in resp_dict['TableDetections']:
             cells = table['Cells']
             # cells = resp_dict['TableDetections'][0]
@@ -57,6 +60,10 @@ try:
                     x_0, y_0, x_1, y_1 = cell['Polygon'][0]['X'], cell['Polygon'][0]['Y'], cell['Polygon'][2]['X'], cell['Polygon'][2]['Y']
                     cv2.rectangle(image, (x_0, y_0), (x_1, y_1), (0, 0, 255), 2)
                     txt_out.write(str(cell['RowTl']) + ',' + str(cell['ColTl']) + ',' + str(cell['RowBr']) + ',' + str(cell['ColBr']) + '|' + cell['Text'] + '\n')
+                    # 输出yolo格式的box-开始
+                    x_center, y_center, w, h = (x_0 + x_1) / 2 / img_w, (y_0 + y_1) / 2 / img_h, abs(x_0 - x_1) / img_w, abs(y_0 - y_1) / img_h
+                    box_out.write(' '.join(['0', str(x_center), str(y_center), str(w), str(h) + '\n']))
+                    # 输出yolo格式的box-结束
                 txt_out.write('</table>\n')
             else:
                 for cell in cells:
@@ -65,7 +72,8 @@ try:
                     txt_out.write(cell['Text'] + '\n')
         # cv2.namedWindow('image', 0)
         txt_out.close()
-        cv2.imwrite('/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_18/out_img/' + str(index) + '.jpg', image)
+        box_out.close()
+        cv2.imwrite('/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_18/20210423评估/tencent_out/show/' + str(index) + '.jpg', image)
         # cv2.imshow('image', image)
         # cv2.waitKey()
 

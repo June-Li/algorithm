@@ -25,13 +25,13 @@ def cal_iou(box_1, box_2):
     return iou
 
 
-predict_base_path = '/Volumes/my_disk/company/sensedeal/217_PycharmProject/bbtv/PaddleOCR-1.0-2021/result/gt_out/'
-predict_image_path = predict_base_path + 'images/'
-predict_label_path = predict_base_path + 'labels/'
+predict_base_path = '/Volumes/my_disk/company/sensedeal/项目/POC/华夏国际银行poc需求梳理/gt/'
+predict_image_path = predict_base_path + 'images_p/'
+predict_label_path = predict_base_path + 'labels_p/'
 
 gt_base_path = '/Volumes/my_disk/company/sensedeal/项目/POC/华夏国际银行poc需求梳理/gt/'
-gt_image_path = gt_base_path + 'images/'
-gt_label_path = gt_base_path + 'labels/'
+gt_image_path = gt_base_path + 'images_dup/'
+gt_label_path = gt_base_path + 'labels_dup/'
 
 predict_iou_list_iou_list_total = []
 gt_iou_list_iou_list_total = []

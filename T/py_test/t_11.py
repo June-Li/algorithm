@@ -1,83 +1,182 @@
-import os
+import cv2
 import shutil
+import os
+
+
+# base_path = '/Volumes/my_disk/company/sensedeal/dataset/印章/crawl/百度-章程盖章/'
+# image_name_list = os.listdir(base_path)
+# for image_name in image_name_list:
+#     print(image_name)
+#     os.rename(base_path + image_name, base_path + 'baidu_zhangcheng_' + image_name)
+
+
+# base_path = '/Volumes/my_disk/company/sensedeal/dataset/印章/crawl_filter/sougou_fapiao_images/'
+# out_path = '/Volumes/my_disk/company/sensedeal/dataset/印章/crawl_all/images/'
+# image_name_list = os.listdir(base_path)
+# for image_name in image_name_list:
+#     shutil.copy(base_path + image_name, out_path + image_name)
+
+
+# base_path = '/Volumes/my_disk/company/sensedeal/dataset/印章/step_2_crawl_filter/baidu_fapiao_images/'
+# out_label_path = '/Volumes/my_disk/company/sensedeal/dataset/印章/step_4_crawl_semi/images/'
+# out_unlabel_path = '/Volumes/my_disk/company/sensedeal/dataset/印章/step_4_crawl_semi/un_images/'
+# image_name_list = os.listdir(base_path)
+# for index, image_name in enumerate(image_name_list):
+#     if index % 40 == 0:
+#         shutil.copy(base_path + image_name, out_label_path + image_name)
+#     else:
+#         shutil.copy(base_path + image_name, out_unlabel_path + image_name)
+#     print(image_name)
+#
+# label_path = '/Volumes/my_disk/company/sensedeal/dataset/印章/step_4_crawl_semi/labels-/'
+# out_path = '/Volumes/my_disk/company/sensedeal/dataset/印章/step_4_crawl_semi/labels/'
+# file_name_list = os.listdir(label_path)
+# for file_name in file_name_list:
+#     if 'class' in file_name:
+#         continue
+#     lines = open(label_path + file_name, 'r').readlines()
+#     out_str = ''
+#     for line in lines:
+#         out_str += ' '.join(['0'] + line.split(' ')[1:])
+#     open(out_path + file_name, 'w').writelines(out_str)
+#     print(out_str)
+
+# base_path = '/Volumes/my_disk/company/sensedeal/dataset/印章/step_4_crawl_semi/'
+# in_path = base_path + 'un_images/train/'
+# out_path = base_path + 'images/test/'
+# image_name_list = os.listdir(in_path)
+# num = 0
+# for index, image_name in enumerate(image_name_list):
+#     if index % 15 == 1:
+#         shutil.move(in_path + image_name, out_path + image_name)
+#         num += 1
+#     if num == 41:
+#         break
+#     print(image_name)
+
+
+
+# -*- coding: utf-8 -*-
+# !/usr/bin/env python
+import paramiko
 import cv2
 import numpy as np
+import copy
 
 
-def get_rotate_crop_image(img, points):
-    # points = np.array(
-    #     [[points[0], points[1]], [points[2], points[3]], [points[4], points[5]], [points[6], points[7]]],
-    #     np.float32)
-    points = np.array(points, np.float32)
-    img_crop_width = int(
-        max(
-            np.linalg.norm(points[0] - points[1]),
-            np.linalg.norm(points[2] - points[3])))
-    img_crop_height = int(
-        max(
-            np.linalg.norm(points[0] - points[3]),
-            np.linalg.norm(points[1] - points[2])))
-    pts_std = np.float32([[0, 0], [img_crop_width, 0],
-                          [img_crop_width, img_crop_height],
-                          [0, img_crop_height]])
-    M = cv2.getPerspectiveTransform(points, pts_std)
-    dst_img = cv2.warpPerspective(
-        img,
-        M, (img_crop_width, img_crop_height),
-        borderMode=cv2.BORDER_REPLICATE,
-        flags=cv2.INTER_CUBIC)
-    dst_img_height, dst_img_width = dst_img.shape[0:2]
-    if dst_img_height * 1.0 / dst_img_width >= 1.5:
-        dst_img = np.rot90(dst_img)
-    return dst_img
+def get_remote(hostname, port, username, password):
+    transport = paramiko.Transport((hostname, port))
+    transport.connect(username=username, password=password)
+    sftp = paramiko.SFTPClient.from_transport(transport)
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname, port, username, password, compress=True)
+    sftp_client = client.open_sftp()
+    return sftp, sftp_client
 
 
-base_path = '/workspace/JuneLi/bbtv/data_generator/Generate_det_rec/together/images/'
-# base_path = '/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_14/test_1/'
-image_name_list = os.listdir(base_path + 'images')
-count = 0
-for image_name in image_name_list:
-    if not image_name.endswith('.jpg'):
-        continue
-    image_ori = cv2.imread(base_path + 'images/' + image_name)
-    image_show = image_ori.copy()
-    label_path = base_path + 'labels/' + image_name.replace('.jpg', '.txt')
+def get_image_label(sftp_client, image_path, label_path):
+    image_bin = sftp_client.open(image_path)  # 文件路径
+    image = np.asarray(bytearray(image_bin.read()), dtype="uint8")
+    image = cv2.imdecode(image, cv2.IMREAD_COLOR)
 
-    lines = open(label_path, 'r').readlines()
-    for line in lines:
-        box = line.split(',')[:8]
-        box = [int(i) for i in box]
-        points = np.array([[box[0], box[1]], [box[2], box[3]], [box[4], box[5]], [box[6], box[7]]])
-        image_show = cv2.polylines(image_show, np.array([points]), True, (0, 255, 255), 2)
-        image = get_rotate_crop_image(image_ori, points)
+    label = [line for line in sftp_client.open(label_path)]
 
-        h, w = np.shape(image)[0], np.shape(image)[1]
-        image = cv2.resize(image, (32 * w // h, 32))
-        h, w = np.shape(image)[0], np.shape(image)[1]
-        if w > 1280:
-            image = cv2.resize(image, (1280, 32))
-        else:
-            mask_img = np.ones((32, 1280, 3), dtype=np.uint8) * int(np.argmax(np.bincount(image.flatten(order='C'))))
-            random_start = np.random.randint(0, 1280 - w)
-            print(random_start, w, np.shape(image))
-            mask_img[:, random_start:random_start + w] = image
-            image = mask_img
+    return image, label
 
-        image_180 = np.rot90(image)
-        image_180 = np.rot90(image_180)
 
-        cv2.imshow('0', image)
-        cv2.imshow('1', image_180)
-        cv2.waitKey()
-        if count % 100 == 0:
-            cv2.imwrite('/workspace/JuneLi/bbtv/pytorch-cifar100/data/ocr_angle/test/0/' + str(count) + '.jpg', image)
-            cv2.imwrite('/workspace/JuneLi/bbtv/pytorch-cifar100/data/ocr_angle/test/1/' + str(count) + '.jpg', image_180)
-        elif count % 100 == 50:
-            cv2.imwrite('/workspace/JuneLi/bbtv/pytorch-cifar100/data/ocr_angle/val/0/' + str(count) + '.jpg', image)
-            cv2.imwrite('/workspace/JuneLi/bbtv/pytorch-cifar100/data/ocr_angle/val/1/' + str(count) + '.jpg', image_180)
-        else:
-            cv2.imwrite('/workspace/JuneLi/bbtv/pytorch-cifar100/data/ocr_angle/train/0/' + str(count) + '.jpg', image)
-            cv2.imwrite('/workspace/JuneLi/bbtv/pytorch-cifar100/data/ocr_angle/train/1/' + str(count) + '.jpg', image_180)
-        count += 1
-        if count % 100 == 0:
-            print('processed num: ', count)
+def get_image(sftp_client, image_path):
+    image_bin = sftp_client.open(image_path)  # 文件路径
+    image = np.asarray(bytearray(image_bin.read()), dtype="uint8")
+    image_1 = cv2.imdecode(image, cv2.IMREAD_COLOR)
+
+    image_bin = sftp_client.open(image_path.replace('exp4', 'exp5'))  # 文件路径
+    image = np.asarray(bytearray(image_bin.read()), dtype="uint8")
+    image_2 = cv2.imdecode(image, cv2.IMREAD_COLOR)
+
+    return image_1, image_2
+
+
+def draw_box(image, label):
+    for line in label:
+        line = line.rstrip('\n').rstrip(' ').lstrip(' ').split(' ')
+        [x_center, y_center, weight, height] = [float(i) for i in line[1:]]
+        x_0 = int((x_center - weight / 2) * np.shape(image)[1])
+        y_0 = int((y_center - height / 2) * np.shape(image)[0])
+        x_1 = int((x_center + weight / 2) * np.shape(image)[1])
+        y_1 = int((y_center + height / 2) * np.shape(image)[0])
+        cv2.rectangle(image, (x_0, y_0), (x_1, y_1), (0, 255, 255), thickness=2)
+    return image
+
+
+def get_effective_radio(image, label):
+    img_h, img_w, _ = np.shape(image)
+    effective_area_list = []
+    for line in label:
+        line = line.rstrip('\n').rstrip(' ').lstrip(' ').split(' ')
+        [x_center, y_center, weight, height] = [float(i) for i in line[1:]]
+        x_0 = int((x_center - weight / 2) * img_w)
+        y_0 = int((y_center - height / 2) * img_h)
+        x_1 = int((x_center + weight / 2) * img_w)
+        y_1 = int((y_center + height / 2) * img_h)
+        effective_area_list.append(abs(x_1 - x_0) * abs(y_0 - y_1))
+    effective_area = sum(effective_area_list)
+    total_area = img_h * img_w
+    radio = effective_area / total_area
+    return radio
+
+
+def main():
+    data_path = '/workspace/JuneLi/bbtv/SSL_yolov3_seal_FixMatch/runs/detect/exp4/'
+    # data_path = '/workspace/JuneLi/bbtv/SSL_yolov3_table_cell_FixMatch/data/ocr_table/all/images/train/'
+
+    hostname = "192.168.1.217"
+    port = 10022
+    username = "root"
+    password = "123456"
+
+    sftp, sftp_client = get_remote(hostname, port, username, password)
+
+    image_name_list = sftp.listdir(data_path)
+    radio_dict = {i: 0 for i in range(10)}
+    radio_dict['full'] = 0
+    for index, image_name in enumerate(image_name_list):
+        print(image_name)
+        image_1, image_2 = get_image(sftp_client, data_path + image_name)
+
+        cv2.imshow('image_1', image_1)
+        cv2.imshow('image_2', image_2)
+        key = cv2.waitKey()
+        if key == ord(' '):
+            cv2.imwrite('out/' + str(index) + '.jpg', image_2)
+        if index % 100 == 0:
+            print(index)
+            print(radio_dict)
+    print(radio_dict)
+
+
+if __name__ == '__main__':
+    main()
+# data_path = '/workspace/JuneLi/bbtv/SSL_yolov3_table_cell_FixMatch/data/ocr_table/semi/un_images/train/'
+# # 实例化一个transport对象
+# transport = paramiko.Transport(('192.168.1.217', 10022))
+# # 建立连接
+# transport.connect(username='root', password='123456')
+# # 实例化一个 sftp对象,指定连接的通道
+# sftp = paramiko.SFTPClient.from_transport(transport)
+# data = sftp.listdir(data_path)
+# print(data)
+# for imagename in data:
+#     imagepath = os.path.join('http://192.168.1.217:10022 ' + data_path, imagename)
+#     print(imagepath)
+#     resp = urllib.request.urlopen(imagepath)
+#     image = np.asarray(bytearray(resp.read()), dtype="uint8")
+#     image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+#     cv2.imshow('image', image)
+#     cv2.waitKey(0)
+#     print(image)
+# x_list, y_list = [], []
+# x_list.append(x_0), x_list.append(x_1), y_list.append(y_0), y_list.append(y_1)
+# min_x, min_y, max_x, max_y = min(x_list), min(y_list), max(x_list), max(y_list)
+# total_area = abs(max_x - min_x) * abs(max_y * min_y)

@@ -1,65 +1,75 @@
-import numpy as np
+import os
 import cv2
-import chardet
+import numpy as np
 
-#
-# file = open('', 'r')
-# lines = file.readlines()
-# for line in lines:
-#     print(line)
+# 显示box，用来检验生成的box是否正确
+image_path = '/Volumes/my_disk/company/sensedeal/项目/POC/华夏国际银行poc需求梳理/gt/images_dup/'
+label_path = '/Volumes/my_disk/company/sensedeal/项目/POC/华夏国际银行poc需求梳理/gt/labels_dup/'
+# image_path = '/Volumes/my_disk/company/sensedeal/dataset/my/my_mix/table_detection/v_0/TableBank_cls/images/'
+# label_path = '/Volumes/my_disk/company/sensedeal/dataset/my/my_mix/table_detection/v_0/TableBank_cls/labels/'
+# image_path = '/Volumes/my_disk/company/sensedeal/217_PycharmProject/bbtv/SSL_yolov3_FixMatch/data/ocr_table/un_images/train/'
+# label_path = '/Volumes/my_disk/company/sensedeal/217_PycharmProject/bbtv/SSL_yolov3_FixMatch/data/ocr_table/un_labels/train/'
+image_name_list = os.listdir(image_path)
+for image_name in image_name_list:
+    if not image_name.endswith('.jpg'):
+        continue
+    print(image_name)
+    label_name = image_name.replace('.jpg', '.txt')
+    img_path = image_path + image_name
+    lab_path = label_path + label_name
 
-"""
-num_125304.jpg 76 6 6 105 105 19
-pdf_scan_H2_AN202003311377255325_1_39_159.jpg 22 6 19 94 26
-global_425583.jpg 205
-54779468_1432822555.jpg 2 92 39 175 75 58 477 4 543 14
-global_884609.jpg 76 6 19 105 19 105
-"""
+    image_ori = cv2.imread(img_path)
+    cv2.imshow('ori_image', cv2.resize(image_ori, (np.shape(image_ori)[1] // 2, np.shape(image_ori)[0] // 2)))
+    image_gt = cv2.imread(img_path)
+    image_all = cv2.imread(img_path)
+    lines = open(lab_path, 'r').readlines()
+    si_flag = True
+    tran_img = ''
+    for line in lines:
+        ii = {0: 'yes', 1: 'no'}
+        line = line.rstrip('\n').rstrip(' ').lstrip(' ').split(' ')
+        [x_center, y_center, weight, height] = [float(i) for i in line[1:]]
+        x_0 = int((x_center - weight / 2) * np.shape(image_gt)[1])
+        y_0 = int((y_center - height / 2) * np.shape(image_gt)[0])
+        x_1 = int((x_center + weight / 2) * np.shape(image_gt)[1])
+        y_1 = int((y_center + height / 2) * np.shape(image_gt)[0])
+        cv2.rectangle(image_gt, (x_0, y_0), (x_1, y_1), (0, 0, 255), thickness=1)
+        cv2.rectangle(image_all, (x_0, y_0), (x_1, y_1), (0, 0, 255), thickness=1)
 
-base_path = '/Volumes/my_disk/company/sensedeal/217_PycharmProject/bbtv/CRNN_Chinese_Characters_Rec/lib/dataset/txt/char_std_5990.txt'
-file = open(base_path, "r", encoding="latin1").readlines()
+        if si_flag:
+            ss = image_ori.copy()
+            cv2.rectangle(ss, (x_0, y_0), (x_1, y_1), (0, 0, 255), thickness=3)
+            cv2.imshow('ss', ss)
+            key = cv2.waitKey()
+            if key == ord(' '):
+                tran_img = ss
+                si_flag = False
+    cv2.imwrite('/Volumes/my_disk/company/sensedeal/项目/POC/华夏国际银行poc需求梳理/gt/out/gt.jpg', image_gt)
 
-count = 0
-chn_list = []
-for line in file:
-    count += 1
-    line_chn = line.encode('latin1').decode('GB18030').rstrip('\n')
-    chn_list.append(line_chn)
-# # # print(chn_list.index('：'))
-# print(chn_list.index('１'))
-print(chn_list.index('1'))
-print(chardet.detect(str.encode('１')))
-print(chardet.detect(str.encode('1')))
-print(chardet.detect(str.encode('：')))
-print(chardet.detect(str.encode(chn_list[49])), chn_list[49])
-print(ord('1'), ord('１'), '１'.encode('utf8'))
+    image_p = cv2.imread(img_path)
+    lines = open(lab_path.replace('labels_dup', 'labels_p'), 'r').readlines()
+    for line in lines:
+        ii = {0: 'yes', 1: 'no'}
+        line = line.rstrip('\n').rstrip(' ').lstrip(' ').split(' ')
+        [x_center, y_center, weight, height] = [float(i) for i in line[1:]]
+        x_0 = int((x_center - weight / 2) * np.shape(image_p)[1])
+        y_0 = int((y_center - height / 2) * np.shape(image_p)[0])
+        x_1 = int((x_center + weight / 2) * np.shape(image_p)[1])
+        y_1 = int((y_center + height / 2) * np.shape(image_p)[0])
+        cv2.rectangle(image_p, (x_0, y_0), (x_1, y_1), (255, 0, 0), thickness=1)
+        cv2.rectangle(image_all, (x_0, y_0), (x_1, y_1), (255, 0, 0), thickness=1)
 
-char_list = '223 382 376 403 20 226 98 20'.split(' ')
-text = ''
-for char_ in char_list:
-    text += chn_list[int(char_)]
-print(text)
 
-# a = '123548dsafsdfa我的'
-# # a = 'lijun李俊+'
-# num_count = 0
-# for char in list(a):
-#     if char in list('012345789'):
-#         num_count += 1
-# print(num_count)
-# if num_count > 5:
-#     print(a)
+        ss = tran_img.copy()
+        cv2.rectangle(ss, (x_0, y_0), (x_1, y_1), (255, 0, 0), thickness=3)
+        cv2.imshow('ss', ss)
+        key = cv2.waitKey()
+    cv2.imwrite('/Volumes/my_disk/company/sensedeal/项目/POC/华夏国际银行poc需求梳理/gt/out/predict.jpg', image_p)
 
-# base_path = '/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_15/global_999895.jpg'
-# while True:
-#     image = cv2.imread(base_path)
-#     image = cv2.resize(image, (32 * np.shape(image)[1] // np.shape(image)[0], 32))
-#     if np.shape(image)[1] >= 280:
-#         image = cv2.resize(image, (280, 32))
-#     else:
-#         mask_image = np.ones((32, 280, 3), dtype=np.uint8) * int(np.argmax(np.bincount(image.flatten(order='C'))))
-#         random_index = np.random.randint(0, 280 - np.shape(image)[1])
-#         mask_image[:, random_index: random_index + np.shape(image)[1]] = image
-#         image = mask_image
-#     cv2.imshow('image', image)
-#     cv2.waitKey(1)
+    cv2.putText(image_all, 'single table mAP: ' + str(0.833), (100, 100), fontFace=cv2.FONT_HERSHEY_SIMPLEX, color=(125, 125, 255), fontScale=2, thickness=3)
+    cv2.imwrite('/Volumes/my_disk/company/sensedeal/项目/POC/华夏国际银行poc需求梳理/gt/out/gt+predict.jpg', image_all)
+    cv2.imshow('image', cv2.resize(image_gt, (np.shape(image_gt)[1] * 1000 // np.shape(image_gt)[0], 1000)))
+    cv2.imshow('image', cv2.resize(image_p, (np.shape(image_p)[1]*1000//np.shape(image_p)[0], 1000)))
+    cv2.imshow('image', cv2.resize(image_all, (np.shape(image_p)[1] * 1000 // np.shape(image_p)[0], 1000)))
+    cv2.waitKey()
+
