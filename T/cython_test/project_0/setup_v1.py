@@ -87,7 +87,7 @@ if __name__ == '__main__':
     extensions = []
     ignore_folders = ['build']  # , 'test', 'tests']
     conf_folders = ['conf']
-    compose_extensions(os.path.abspath('.'))
+    compose_extensions(os.path.abspath('..'))
     os.remove(init_file)
 
     setup(

@@ -1,47 +1,64 @@
+# -*- coding: utf-8 -*-
+# !/usr/bin/env python
+import paramiko
 import cv2
 import numpy as np
-import time
+import copy
 
 
-def tps_cv2(source, target, img):
-    """
-    使用cv2自带的tps处理
-    """
-    tps = cv2.createThinPlateSplineShapeTransformer()
+def get_remote(hostname, port, username, password):
+    transport = paramiko.Transport((hostname, port))
+    transport.connect(username=username, password=password)
+    sftp = paramiko.SFTPClient.from_transport(transport)
 
-    source_cv2 = source.reshape(1, -1, 2)
-    target_cv2 = target.reshape(1, -1, 2)
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname, port, username, password, compress=True)
+    sftp_client = client.open_sftp()
+    return sftp, sftp_client
 
-    matches = list()
-    for i in range(0, len(source_cv2[0])):
-        matches.append(cv2.DMatch(i, i, 0))
 
-    tps.estimateTransformation(target_cv2, source_cv2, matches)
-    new_img_cv2 = tps.warpImage(img)
+def get_image_label(sftp_client, image_path, label_path):
+    image_bin = sftp_client.open(image_path)  # 文件路径
+    image = np.asarray(bytearray(image_bin.read()), dtype="uint8")
+    image = cv2.imdecode(image, cv2.IMREAD_COLOR)
 
-    return new_img_cv2
+    label = [line for line in sftp_client.open(label_path)]
+
+    return image, label
 
 
 def main():
-    image = cv2.imread('/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_19/cu.png')
-    img_h, img_w, _ = np.shape(image)
-    cv2.imshow('image', image)
+    data_path = '/workspace/JuneLi/datasets/paddleocr推荐的中文训练数据集/ICDAR2019-ArT/my_train/v1/images/'
+    # data_path = '/workspace/JuneLi/datasets/paddleocr推荐的中文训练数据集/中文文档文字识别/my_train/v0/images/'
 
-    source = [[16, 152], [16, 210], [96, 89], [96, 168], [175, 39], [175, 143], [306, 23], [306, 107],
-              [438, 9], [438, 113], [577, 53], [577, 132], [656, 87], [656, 171], [738, 132], [738, 240]]
-    target = []
-    for i in range(len(source) // 2):
-        target.append([i * 90, 0])
-        target.append([i * 90, 32])
+    hostname = "192.168.1.217"
+    port = 10022
+    username = "root"
+    password = "123456"
 
-    start = time.time()
-    source, target = np.array(source), np.array(target)
-    print('use time: ', time.time() - start)
+    sftp, sftp_client = get_remote(hostname, port, username, password)
 
-    out_img = tps_cv2(source, target, image)
-    cv2.imshow('cut_img', out_img)
-    cv2.imshow('out_cut_img', out_img[:35, :630])
-    cv2.waitKey()
+    # image_name_list = sftp.listdir(data_path)
+
+    image_name_list = []
+    label_name_list = sftp.listdir(data_path.replace('/images/', '/labels/'))
+    for label_name in label_name_list:
+        image_name_list.append(label_name.replace('.txt', '.jpg'))
+
+    radio_dict = {i: 0 for i in range(10)}
+    radio_dict['full'] = 0
+    for index, image_name in enumerate(image_name_list):
+        # if 'ori' in image_name or index % 1000 != 0 or '_straight_' in image_name or image_name != '20455828_2605100732.jpg':
+        #     continue
+
+        print(image_name)
+        image, label = get_image_label(sftp_client, data_path + image_name,
+                                       data_path.replace('/images/', '/labels/') + image_name.replace('.jpg', '.txt'))
+
+        print('label is: ', label)
+        cv2.imshow('image', image)
+        cv2.waitKey()
 
 
 if __name__ == '__main__':

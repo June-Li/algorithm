@@ -36,7 +36,7 @@ def draw_box(image, label):
         y_0 = int((y_center - height / 2) * np.shape(image)[0])
         x_1 = int((x_center + weight / 2) * np.shape(image)[1])
         y_1 = int((y_center + height / 2) * np.shape(image)[0])
-        cv2.rectangle(image, (x_0, y_0), (x_1, y_1), (0, 255, 255), thickness=2)
+        cv2.rectangle(image, (x_0, y_0), (x_1, y_1), (0, 0, 255), thickness=2)
     return image
 
 
@@ -58,7 +58,7 @@ def get_effective_radio(image, label):
 
 
 def main():
-    data_path = '/workspace/JuneLi/bbtv/SSL_yolov3_seal_FixMatch/data/ocr_table/semi/un_images/train/'
+    data_path = '/workspace/JuneLi/bbtv/SensedealImgAlg/WORKFLOW/OTHER/OCR/v0/test_out/gt/line/images/'
     # data_path = '/workspace/JuneLi/bbtv/SSL_yolov3_table_cell_FixMatch/data/ocr_table/all/images/train/'
 
     hostname = "192.168.1.217"
@@ -74,7 +74,7 @@ def main():
     for index, image_name in enumerate(image_name_list):
         print(image_name)
         image, label = get_image_label(sftp_client, data_path + image_name,
-                                       data_path.replace('/un_images/', '/un_labels/') + image_name.replace('.jpg', '.txt'))
+                                       data_path.replace('/images/', '/labels/') + image_name.replace('.jpg', '.txt'))
 
         radio = get_effective_radio(image, label)
         radio = 1

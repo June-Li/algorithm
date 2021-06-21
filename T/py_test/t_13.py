@@ -38,6 +38,7 @@ img = base64.b64encode(cv2.imencode(".jpg", img_ori.copy())[1].tobytes()).decode
 temp_img = img_ori.copy()
 # request_url = args.tencent_ip
 request_url = "http://106.55.81.17:60007/youtu/ocrapi/tableocr"
+# request_url = "http://25.66.138.153:60007/youtu/ocrapi/tableocr"
 params = {"app_id": '123456', "image": img,
           "options": {"preprocess": True,
                       "enable_ret_excel": True,
@@ -50,4 +51,5 @@ headers = {'Host': '<calculated when request is sent>',
 response = requests.post(request_url, data=json.dumps(params), headers=headers)
 response.encoding = 'utf-8'
 response = json.loads(response.text)
+print(response['tableRes'])
 print()

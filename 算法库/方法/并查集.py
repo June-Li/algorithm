@@ -10,7 +10,7 @@ class DisjointSet():
         for edge in self.edges:
             self.point_set.add(edge.split('&')[0])
             self.point_set.add(edge.split('&')[1])
-        self.parent = {i: i for i in self.point_set}
+        self.parent = {i: i for i in self.point_set}  # 父节点数组是关键，索引表示某个元素，值表示父节点，-1表示root节点
         self.rank = {i: 0 for i in self.point_set}
 
     # 并

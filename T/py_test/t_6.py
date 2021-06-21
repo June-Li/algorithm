@@ -36,6 +36,15 @@
 # img = base64.b64encode(f.read()).decode('utf8')
 # print(img)
 
-a = [1, 1, 1, 1, 1]
-b = [1, 1, 1, 0, 0]
-print(a*b)
+# a = [1, 1, 1, 1, 1]
+# b = [1, 1, 1, 0, 0]
+# print(a*b)
+
+
+import cv2
+import numpy as np
+
+image = cv2.imread('/Volumes/my_disk/company/sensedeal/PycharmProject/bbtv/PytorchOCR/doc/my_imgs/imgs_0/2.jpg')
+out_img = np.concatenate((image, image), axis=1)
+cv2.imshow('image', out_img)
+cv2.waitKey()

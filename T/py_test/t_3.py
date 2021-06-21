@@ -1,31 +1,59 @@
-# import cv2
-# import os
-# import numpy as np
-#
-#
-# base_path = '/Volumes/my_disk/company/sensedeal/217_PycharmProject/bbtv/SSL_yolov3_FixMatch/buffer/a/'
-# image_name_list = os.listdir(base_path)
-# print(len(image_name_list))
-# for image_name in image_name_list:
-#     image = cv2.imread(base_path + image_name)
-#     cv2.imshow('image', image)
-#     cv2.waitKey()
+# -*- coding: utf-8 -*-
+# !/usr/bin/env python
+import paramiko
+import cv2
+import numpy as np
+import copy
 
-total = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-# total[0] = _203_207 = 7+11+4+7+14
-# total[1] = _208_212 = 4+6+23+7+7
-# total[2] = _213_217 = 7+8+15+5+7
-# total[3] = _218_222 = 5+12+8+12+13
+def get_remote(hostname, port, username, password):
+    transport = paramiko.Transport((hostname, port))
+    transport.connect(username=username, password=password)
+    sftp = paramiko.SFTPClient.from_transport(transport)
 
-total[0] = _223_227 = 8 + 6 + 5 + 6 + 8
-total[1] = _228_232 = 4 + 8 + 6 + 10 + 7
-total[2] = _233_237 = 11 + 6 + 7 + 22 + 11
-total[3] = _238_242 = 8 + 6 + 6 + 7 + 7
-total[4] = _243_244 = 7 + 7
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname, port, username, password, compress=True)
+    sftp_client = client.open_sftp()
+    return sftp, sftp_client
 
-for index, i in enumerate(total):
-    if i != 0:
-        print(index, ': ', i)
 
-print(sum(total))
+def get_image_label(sftp_client, image_path, label_path):
+    image_bin = sftp_client.open(image_path)  # 文件路径
+    image = np.asarray(bytearray(image_bin.read()), dtype="uint8")
+    image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+
+    # label = [line for line in sftp_client.open(label_path)]
+
+    return image, image
+
+
+def main():
+    data_path = '/workspace/JuneLi/datasets/paddleocr推荐的中文训练数据集/ICDAR2019-ArT/train_images/'
+    data_path = '/root/bbtv/pytorch-cifar100/data/ocr_angle/out/1/'
+    data_path = '/workspace/JuneLi/bbtv/PytorchOCR/out/my_imgs_2/3/'
+
+    hostname = "192.168.1.217"
+    port = 10022
+    username = "root"
+    password = "123456"
+
+    sftp, sftp_client = get_remote(hostname, port, username, password)
+
+    image_name_list = sftp.listdir(data_path)
+    radio_dict = {i: 0 for i in range(10)}
+    radio_dict['full'] = 0
+    for index, image_name in enumerate(image_name_list):
+        # if image_name != 'gt_1924.jpg':
+        #     continue
+        print(image_name)
+        image, label = get_image_label(sftp_client, data_path + image_name,
+                                       data_path.replace('/images/', '/labels/') + image_name.replace('.jpg', '.txt'))
+
+        # print('label is: ', label)
+        cv2.imshow('image', image)
+        cv2.waitKey()
+
+
+if __name__ == '__main__':
+    main()
