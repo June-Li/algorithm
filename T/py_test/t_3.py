@@ -1,59 +1,43 @@
-# -*- coding: utf-8 -*-
-# !/usr/bin/env python
-import paramiko
 import cv2
 import numpy as np
-import copy
+import os
 
 
-def get_remote(hostname, port, username, password):
-    transport = paramiko.Transport((hostname, port))
-    transport.connect(username=username, password=password)
-    sftp = paramiko.SFTPClient.from_transport(transport)
-
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(hostname, port, username, password, compress=True)
-    sftp_client = client.open_sftp()
-    return sftp, sftp_client
-
-
-def get_image_label(sftp_client, image_path, label_path):
-    image_bin = sftp_client.open(image_path)  # 文件路径
-    image = np.asarray(bytearray(image_bin.read()), dtype="uint8")
-    image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-
-    # label = [line for line in sftp_client.open(label_path)]
-
-    return image, image
-
-
-def main():
-    data_path = '/workspace/JuneLi/datasets/paddleocr推荐的中文训练数据集/ICDAR2019-ArT/train_images/'
-    data_path = '/root/bbtv/pytorch-cifar100/data/ocr_angle/out/1/'
-    data_path = '/workspace/JuneLi/bbtv/PytorchOCR/out/my_imgs_2/3/'
-
-    hostname = "192.168.1.217"
-    port = 10022
-    username = "root"
-    password = "123456"
-
-    sftp, sftp_client = get_remote(hostname, port, username, password)
-
-    image_name_list = sftp.listdir(data_path)
-    radio_dict = {i: 0 for i in range(10)}
-    radio_dict['full'] = 0
-    for index, image_name in enumerate(image_name_list):
-        # if image_name != 'gt_1924.jpg':
-        #     continue
-        print(image_name)
-        image, label = get_image_label(sftp_client, data_path + image_name,
-                                       data_path.replace('/images/', '/labels/') + image_name.replace('.jpg', '.txt'))
-
-        # print('label is: ', label)
+base_path = '/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_1/table/'
+in_images_path = base_path + '/together/images/'
+in_labels_path = base_path + '/together/labels/'
+out_images_path = base_path + '/cls/'
+out_exit_file_list_t = os.listdir(out_images_path + '0') + os.listdir(out_images_path + '1') + os.listdir(out_images_path + '_')
+out_exit_file_list = [i[::-1].split('_', 1)[-1][::-1] + '.jpg' for i in out_exit_file_list_t]
+skip_list = ['total_5361_015.jpg', 'total_2_44.jpg']
+image_name_list = os.listdir(in_images_path)
+for count, image_name in enumerate(image_name_list):
+    try:
+        if image_name in out_exit_file_list or image_name in skip_list:
+            continue
+        print('current processe image name: ', image_name)
+        image_path = in_images_path + image_name
+        label_path = in_labels_path + image_name.replace('.jpg', '.txt')
+        image = cv2.imread(image_path)
         cv2.imshow('image', image)
-        cv2.waitKey()
-
-
-if __name__ == '__main__':
-    main()
+        label = open(label_path, 'r').readlines()
+        for index, line in enumerate(label):
+            line = line.rstrip('\n').rstrip(' ').lstrip(' ').split(' ')
+            [x_center, y_center, weight, height] = [float(i) for i in line[1:]]
+            x_0 = int((x_center - weight / 2) * np.shape(image)[1])
+            y_0 = int((y_center - height / 2) * np.shape(image)[0])
+            x_1 = int((x_center + weight / 2) * np.shape(image)[1])
+            y_1 = int((y_center + height / 2) * np.shape(image)[0])
+            table = image[y_0:y_1, x_0:x_1]
+            cv2.imshow('tabel', table)
+            key = cv2.waitKey()
+            if key == ord('4'):
+                cv2.imwrite(out_images_path + '0/' + image_name[::-1].split('.', 1)[-1][::-1] + '_' + str(index) + '.jpg', table)
+            elif key == ord('6'):
+                cv2.imwrite(out_images_path + '1/' + image_name[::-1].split('.', 1)[-1][::-1] + '_' + str(index) + '.jpg', table)
+            else:
+                cv2.imwrite(out_images_path + '_/' + image_name[::-1].split('.', 1)[-1][::-1] + '_' + str(index) + '.jpg', table)
+    except:
+        print('error processe image name: ', image_name)
+    if count % 100 == 0:
+        print('processed num: ', count)

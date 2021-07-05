@@ -58,7 +58,7 @@ def get_effective_radio(image, label):
 
 
 def main():
-    data_path = '/workspace/JuneLi/bbtv/SensedealImgAlg/DATASETS/DET/TableCellDet/v1/images/test/'
+    data_path = '/workspace/JuneLi/bbtv/SensedealImgAlg/DATASETS/DET/TableDet/v0/images/train/'
 
     hostname = "192.168.1.217"
     port = 10022
@@ -70,11 +70,14 @@ def main():
     image_name_list = sftp.listdir(data_path)
 
     for index, image_name in enumerate(image_name_list):
+        if not image_name.startswith('total_2_44.jpg'):
+            continue
         print(image_name)
         image, label = get_image_label(sftp_client, data_path + image_name,
                                        data_path.replace('/images/', '/labels/') + image_name.replace('.jpg', '.txt'))
 
         image = draw_box(image, label)
+        image = cv2.resize(image, (256, 256))
         cv2.imshow('image', image)
         cv2.waitKey()
 
