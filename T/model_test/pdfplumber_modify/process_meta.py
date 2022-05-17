@@ -14,7 +14,7 @@
 
 import re
 from decimal import Decimal
-from utils import line_chars_to_text
+from layout_utils import line_chars_to_text
 from settings import PAGENUM_TOLERANCE, HEADER_TOLERANCE
 from process_chars import extract_para_text
 #import Levenshtein

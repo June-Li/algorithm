@@ -16,7 +16,7 @@ from decimal import Decimal
 from operator import itemgetter
 from pdfplumber.utils import to_list
 from settings import X_TOLERANCE, PARA_TOLERANCE_PERCENT, PAGE_PARA_TOLERANCE_PERCENT, LINE_CHAR_TOLERANCE
-from utils import line_chars_to_text
+from layout_utils import line_chars_to_text
 import logging
 logging.getLogger(__name__)
 

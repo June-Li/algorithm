@@ -1,75 +1,95 @@
-import os
+# -*- coding: utf-8 -*-
+# !/usr/bin/env python
+import paramiko
 import cv2
 import numpy as np
+import copy
 
-# 显示box，用来检验生成的box是否正确
-image_path = '/Volumes/my_disk/company/sensedeal/项目/POC/华夏国际银行poc需求梳理/gt/images_dup/'
-label_path = '/Volumes/my_disk/company/sensedeal/项目/POC/华夏国际银行poc需求梳理/gt/labels_dup/'
-# image_path = '/Volumes/my_disk/company/sensedeal/dataset/my/my_mix/table_detection/v_0/TableBank_cls/images/'
-# label_path = '/Volumes/my_disk/company/sensedeal/dataset/my/my_mix/table_detection/v_0/TableBank_cls/labels/'
-# image_path = '/Volumes/my_disk/company/sensedeal/217_PycharmProject/bbtv/SSL_yolov3_FixMatch/data/ocr_table/un_images/train/'
-# label_path = '/Volumes/my_disk/company/sensedeal/217_PycharmProject/bbtv/SSL_yolov3_FixMatch/data/ocr_table/un_labels/train/'
-image_name_list = os.listdir(image_path)
-for image_name in image_name_list:
-    if not image_name.endswith('.jpg'):
-        continue
-    print(image_name)
-    label_name = image_name.replace('.jpg', '.txt')
-    img_path = image_path + image_name
-    lab_path = label_path + label_name
 
-    image_ori = cv2.imread(img_path)
-    cv2.imshow('ori_image', cv2.resize(image_ori, (np.shape(image_ori)[1] // 2, np.shape(image_ori)[0] // 2)))
-    image_gt = cv2.imread(img_path)
-    image_all = cv2.imread(img_path)
-    lines = open(lab_path, 'r').readlines()
-    si_flag = True
-    tran_img = ''
-    for line in lines:
-        ii = {0: 'yes', 1: 'no'}
+def get_remote(hostname, port, username, password):
+    transport = paramiko.Transport((hostname, port))
+    transport.connect(username=username, password=password)
+    sftp = paramiko.SFTPClient.from_transport(transport)
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname, port, username, password, compress=True)
+    sftp_client = client.open_sftp()
+    return sftp, sftp_client
+
+
+def get_image_label(sftp_client, image_path, label_path):
+    image_bin = sftp_client.open(image_path)  # 文件路径
+    image = np.asarray(bytearray(image_bin.read()), dtype="uint8")
+    image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+
+    label = [line for line in sftp_client.open(label_path)]
+    label_str = sftp_client.open(label_path).readlines()
+
+    return image, label, label_str
+
+
+def draw_box(image, label):
+    for line in label:
         line = line.rstrip('\n').rstrip(' ').lstrip(' ').split(' ')
         [x_center, y_center, weight, height] = [float(i) for i in line[1:]]
-        x_0 = int((x_center - weight / 2) * np.shape(image_gt)[1])
-        y_0 = int((y_center - height / 2) * np.shape(image_gt)[0])
-        x_1 = int((x_center + weight / 2) * np.shape(image_gt)[1])
-        y_1 = int((y_center + height / 2) * np.shape(image_gt)[0])
-        cv2.rectangle(image_gt, (x_0, y_0), (x_1, y_1), (0, 0, 255), thickness=1)
-        cv2.rectangle(image_all, (x_0, y_0), (x_1, y_1), (0, 0, 255), thickness=1)
+        x_0 = int((x_center - weight / 2) * np.shape(image)[1])
+        y_0 = int((y_center - height / 2) * np.shape(image)[0])
+        x_1 = int((x_center + weight / 2) * np.shape(image)[1])
+        y_1 = int((y_center + height / 2) * np.shape(image)[0])
+        cv2.rectangle(image, (x_0, y_0), (x_1, y_1), (0, 0, 255), thickness=2)
+    return image
 
-        if si_flag:
-            ss = image_ori.copy()
-            cv2.rectangle(ss, (x_0, y_0), (x_1, y_1), (0, 0, 255), thickness=3)
-            cv2.imshow('ss', ss)
-            key = cv2.waitKey()
-            if key == ord(' '):
-                tran_img = ss
-                si_flag = False
-    cv2.imwrite('/Volumes/my_disk/company/sensedeal/项目/POC/华夏国际银行poc需求梳理/gt/out/gt.jpg', image_gt)
 
-    image_p = cv2.imread(img_path)
-    lines = open(lab_path.replace('labels_dup', 'labels_p'), 'r').readlines()
-    for line in lines:
-        ii = {0: 'yes', 1: 'no'}
+def get_effective_radio(image, label):
+    img_h, img_w, _ = np.shape(image)
+    effective_area_list = []
+    for line in label:
         line = line.rstrip('\n').rstrip(' ').lstrip(' ').split(' ')
         [x_center, y_center, weight, height] = [float(i) for i in line[1:]]
-        x_0 = int((x_center - weight / 2) * np.shape(image_p)[1])
-        y_0 = int((y_center - height / 2) * np.shape(image_p)[0])
-        x_1 = int((x_center + weight / 2) * np.shape(image_p)[1])
-        y_1 = int((y_center + height / 2) * np.shape(image_p)[0])
-        cv2.rectangle(image_p, (x_0, y_0), (x_1, y_1), (255, 0, 0), thickness=1)
-        cv2.rectangle(image_all, (x_0, y_0), (x_1, y_1), (255, 0, 0), thickness=1)
+        x_0 = int((x_center - weight / 2) * img_w)
+        y_0 = int((y_center - height / 2) * img_h)
+        x_1 = int((x_center + weight / 2) * img_w)
+        y_1 = int((y_center + height / 2) * img_h)
+        effective_area_list.append(abs(x_1 - x_0) * abs(y_0 - y_1))
+    effective_area = sum(effective_area_list)
+    total_area = img_h * img_w
+    radio = effective_area / total_area
+    return radio
 
 
-        ss = tran_img.copy()
-        cv2.rectangle(ss, (x_0, y_0), (x_1, y_1), (255, 0, 0), thickness=3)
-        cv2.imshow('ss', ss)
+def main():
+    data_path = '/workspace/JuneLi/bbtv/SensedealImgAlg/DATASETS/DET/SealDet/v1/un_images/train/'
+    # data_path = '/workspace/JuneLi/bbtv/SSL_yolov3_table_cell_FixMatch/data/ocr_table/all/images/train/'
+
+    hostname = "192.168.1.217"
+    port = 10022
+    username = "root"
+    password = "123456"
+
+    sftp, sftp_client = get_remote(hostname, port, username, password)
+
+    image_name_list = sftp.listdir(data_path)
+    radio_dict = {i: 0 for i in range(10)}
+    radio_dict['full'] = 0
+    for index, image_name in enumerate(image_name_list):
+        print(index, '   :', image_name)
+        image, label, out_str = \
+            get_image_label(sftp_client,
+                            data_path + image_name,
+                            data_path.replace('/un_images/', '/un_labels/') + image_name.replace('.jpg', '.txt'))
+
+        image = draw_box(image, label)
+        image_ori = cv2.imread('/Volumes/my_disk/company/sensedeal/dataset/公告扫描件/have_seal_unlabel/images/' + image_name)
+        cv2.imshow('image', image)
         key = cv2.waitKey()
-    cv2.imwrite('/Volumes/my_disk/company/sensedeal/项目/POC/华夏国际银行poc需求梳理/gt/out/predict.jpg', image_p)
+        if key == ord('4'):
+            cv2.imwrite('/Volumes/my_disk/company/sensedeal/dataset/公告扫描件/have_seal_label/images/test/' + image_name,
+                        image_ori)
+            open('/Volumes/my_disk/company/sensedeal/dataset/公告扫描件/have_seal_label/labels/test/' +
+                 image_name.replace('.jpg', '.txt'), 'w').writelines(out_str)
 
-    cv2.putText(image_all, 'single table mAP: ' + str(0.833), (100, 100), fontFace=cv2.FONT_HERSHEY_SIMPLEX, color=(125, 125, 255), fontScale=2, thickness=3)
-    cv2.imwrite('/Volumes/my_disk/company/sensedeal/项目/POC/华夏国际银行poc需求梳理/gt/out/gt+predict.jpg', image_all)
-    cv2.imshow('image', cv2.resize(image_gt, (np.shape(image_gt)[1] * 1000 // np.shape(image_gt)[0], 1000)))
-    cv2.imshow('image', cv2.resize(image_p, (np.shape(image_p)[1]*1000//np.shape(image_p)[0], 1000)))
-    cv2.imshow('image', cv2.resize(image_all, (np.shape(image_p)[1] * 1000 // np.shape(image_p)[0], 1000)))
-    cv2.waitKey()
+
+if __name__ == '__main__':
+    main()
 

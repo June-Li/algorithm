@@ -23,7 +23,7 @@ def tps_cv2(source, target, img):
 
 
 def main():
-    image = cv2.imread('/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_19/cu.png')
+    image = cv2.imread('/Volumes/my_disk/company/sensedeal/buffer_disk/buffer_0/buffer_19/cu.png')
     img_h, img_w, _ = np.shape(image)
     cv2.imshow('image', image)
 
@@ -45,7 +45,7 @@ def main():
     for point in source:
         cv2.circle(image, tuple(point), 2, (0, 0, 255), 2)
     cv2.imshow('image', image)
-    cv2.waitKey()
+    # cv2.waitKey()
     source_h = abs(min(np.array(source)[:, 1]) - max(np.array(source)[:, 1]))
     source_w = abs(min(np.array(source)[:, 0]) - max(np.array(source)[:, 0]))
     text_len = np.sqrt(source_h * source_h + source_w * source_w)

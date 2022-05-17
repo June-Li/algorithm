@@ -13,7 +13,7 @@
 ############################################################
 
 from settings import TABLE_SETTINGS
-from utils import format_cell_text
+from layout_utils import format_cell_text
 
 def find_tables(page, table_settings=TABLE_SETTINGS):
     '''提取表格，待修改'''

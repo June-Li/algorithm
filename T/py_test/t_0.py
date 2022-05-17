@@ -243,11 +243,11 @@ def get_effective_radio(image, label):
 
 
 def main():
-    data_path = '/workspace/JuneLi/bbtv/SensedealImgAlg/WORKFLOW/CLS/TableCls/v0/test_out/my_imgs_3/noline/'
+    data_path = '/data/yuhsuan/generate_data/gt/'
 
-    hostname = "192.168.1.217"
-    port = 10022
-    username = "root"
+    hostname = "192.168.1.80"
+    port = 22
+    username = "junl"
     password = "123456"
 
     sftp, sftp_client = get_remote(hostname, port, username, password)

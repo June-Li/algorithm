@@ -42,6 +42,12 @@ if __name__ == '__main__':
     # edges = ['AB', 'AC', 'AD', 'IL', 'MK', 'IM', 'IJ', 'ED', 'HG', 'HF', 'BG', 'DI']
     # edges = ['A&B', 'C&D', 'B&D']
     # edges = ['A&B', 'B&C', 'C&D']
-    edges = ['11&12', '12&13', '13&14']
+    # edges = ['A&B', 'D&E', 'C&D']
+    # edges = ['11&12', '12&13', '13&14']
+    # edges = ['11&12', '14&15', '13&14']
+    edges = [str(i) + '&' + str(i+1) for i in range(100)]
+    import time
+    start = time.time()
     alg_object = DisjointSet(edges)
     print(alg_object())
+    print('use time: ', time.time()-start)
