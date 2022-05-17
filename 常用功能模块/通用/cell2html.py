@@ -606,8 +606,9 @@ class TableStructure:
 
 
 if __name__ == '__main__':
-    TS = TableStructure()
     # boxes = [[0, 0, 30, 30], [30, 0, 60, 30], [0, 30, 30, 60], [30, 30, 60, 60]]
     boxes = [[0, 0, 30, 30], [30, 0, 60, 30], [0, 30, 30, 60], [30, 30, 60, 60]]
     text_list = ['1', '2', '3', '4']
+
+    TS = TableStructure()
     TS.table_structure(boxes, text_list, './a.html')

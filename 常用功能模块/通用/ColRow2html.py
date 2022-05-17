@@ -88,7 +88,6 @@ class TableStructure:
 
 
 if __name__ == '__main__':
-    TS = TableStructure()
     # data_ori = [
     #     [[0, 0, 1, 1], '华泰博远17号集合资产管理计划'],
     #     [[0, 1, 1, 2], '13, 000.00'],
@@ -109,4 +108,6 @@ if __name__ == '__main__':
     for line in lines:
         boxes.append(list(eval(line.split('|', 1)[0])))
         text_list.append(line.split('|', 1)[-1].strip())
+
+    TS = TableStructure()
     TS.table_structure(boxes, text_list, './a.html')
