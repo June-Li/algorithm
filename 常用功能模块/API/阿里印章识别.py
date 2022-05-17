@@ -9,7 +9,7 @@ from alibabacloud_tea_openapi import models as open_api_models
 from alibabacloud_ocr20191230 import models as ocr_20191230_models
 from viapi.fileutils import FileUtils
 
-file_utils = FileUtils('LTAI5tBRL5zZF259pCaxVoiH', 'QAMNpGYuLGKGtRzSQfNUR6sX5TwMw9')
+file_utils = FileUtils('', '')
 base_path = '/root/bbtv/MyLearn/algorithm/DATASETS/印章/v0/'
 image_name = "1209712058_16.jpg"
 suffix = image_name[::-1].split('.', 1)[0][::-1]
@@ -48,7 +48,7 @@ class Sample:
     def main(
         args: List[str],
     ) -> None:
-        client = Sample.create_client('LTAI5tBRL5zZF259pCaxVoiH', 'QAMNpGYuLGKGtRzSQfNUR6sX5TwMw9')
+        client = Sample.create_client('', '')
         recognize_stamp_request = ocr_20191230_models.RecognizeStampRequest(
             image_url=oss_url
         )

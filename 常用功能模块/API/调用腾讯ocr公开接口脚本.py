@@ -10,7 +10,7 @@ import urllib.request
 import cv2
 
 try:
-    cred = credential.Credential("AKIDmMi4FC5PH0VlIcEreleIhtPjlYKtsC0s", "Zu1FExRzLV8XhIfmhdKoBJMDovGLBk3t")
+    cred = credential.Credential("", "")
     httpProfile = HttpProfile()
     httpProfile.endpoint = "ocr.tencentcloudapi.com"
 
