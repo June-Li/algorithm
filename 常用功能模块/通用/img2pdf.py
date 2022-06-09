@@ -9,18 +9,13 @@ def combine_imgs_pdf(folder_path, pdf_file_path):
         folder_path (str): 源文件夹
         pdf_file_path (str): 输出路径
     """
-
-    # files = os.listdir(folder_path)
-    # png_files = []
-    # sources = []
-    # for file in files:
-    #     if 'png' in file or 'jpg' in file:
-    #         png_files.append(folder_path + file)
-    # png_files.sort()
+    files = os.listdir(folder_path)
     png_files = []
     sources = []
-    for i in range(150):
-        png_files.append(folder_path + str(i) + '.jpg')
+    for file in files:
+        if file.split('/')[-1].split('.')[-1] in ['jpg', 'jpeg', 'JPG', 'JPEG', 'png', 'pdf', 'PDF']:
+            png_files.append(folder_path + file)
+    png_files = sorted(png_files, key=lambda x: int(x[::-1].split('/')[0].split('.', 1)[-1][::-1]))
 
     output = Image.open(png_files[0])
     png_files.pop(0)
